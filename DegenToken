@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract DegenToken is ERC20("DegenToken", "DEGEN"), Ownable {
+    uint256 public maxSupply;
+    mapping(address => bool) public redeemers;
+
+    constructor(uint256 _initialSupply, uint256 _maxSupply) {
+        require(_initialSupply <= _maxSupply, "Initial supply cannot exceed max supply");
+        maxSupply = _maxSupply;
+        _mint(msg.sender, _initialSupply * 10 ** uint256(decimals()));
+        redeemers[msg.sender] = true;
+    }
+
+    function mint(address account, uint256 amount) public onlyOwner {
+        require(totalSupply() + amount <= maxSupply, "Exceeds max supply");
+        _mint(account, amount);
+    }
+
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        require(recipient != address(0), "ERC20: transfer to the zero address is prohibited");
+        return super.transfer(recipient, amount);
+    }
+
+    function redeem(uint256 amount) public {
+        require(redeemers[msg.sender], "You are not allowed to redeem");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        _burn(msg.sender, amount);
+        // Implement item redemption logic here
+    }
+
+    function setRedeemerStatus(address account, bool status) public onlyOwner {
+        redeemers[account] = status;
+    }
+
+    function burn(uint256 amount) public {
+        require(amount > 0, "Amount must be greater than 0");
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        _burn(msg.sender, amount);
+    }
+}
